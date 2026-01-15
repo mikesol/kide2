@@ -256,24 +256,55 @@
       { z: -5, rotY: 0, rotX: 0 }
     ];
 
-    // Crystal geometries
+    // Crystal geometries with natural imperfection
     function createCrystalGeometry(type, size) {
+      let geometry;
+
       switch(type) {
         case 0: // Octahedron - classic crystal
-          return new THREE.OctahedronGeometry(size);
+          geometry = new THREE.OctahedronGeometry(size);
+          break;
         case 1: // Icosahedron - complex crystal
-          return new THREE.IcosahedronGeometry(size, 0);
+          geometry = new THREE.IcosahedronGeometry(size, 0);
+          break;
         case 2: // Elongated crystal (stretched octahedron)
-          const oct = new THREE.OctahedronGeometry(size);
-          oct.scale(1, 2, 1);
-          return oct;
+          geometry = new THREE.OctahedronGeometry(size);
+          geometry.scale(1, 1.5 + Math.random() * 0.8, 1);
+          break;
         case 3: // Tetrahedron - sharp crystal
-          return new THREE.TetrahedronGeometry(size);
-        case 4: // Double-terminated (two octahedrons)
-          return new THREE.OctahedronGeometry(size);
+          geometry = new THREE.TetrahedronGeometry(size);
+          break;
+        case 4: // Flat/tabular crystal
+          geometry = new THREE.OctahedronGeometry(size);
+          geometry.scale(1.3, 0.6, 1);
+          break;
         default:
-          return new THREE.OctahedronGeometry(size);
+          geometry = new THREE.OctahedronGeometry(size);
       }
+
+      // Add natural imperfection - displace vertices slightly
+      const positions = geometry.attributes.position;
+      const imperfection = size * (0.03 + Math.random() * 0.08); // 3-11% of size
+
+      for (let i = 0; i < positions.count; i++) {
+        const x = positions.getX(i);
+        const y = positions.getY(i);
+        const z = positions.getZ(i);
+
+        // Displace along normal direction (roughly outward)
+        const len = Math.sqrt(x*x + y*y + z*z);
+        if (len > 0) {
+          const noise = (Math.random() - 0.5) * 2 * imperfection;
+          positions.setX(i, x + (x/len) * noise);
+          positions.setY(i, y + (y/len) * noise);
+          positions.setZ(i, z + (z/len) * noise);
+        }
+      }
+
+      positions.needsUpdate = true;
+      geometry.computeVertexNormals();
+
+      return geometry;
     }
 
     // Initialize Three.js
@@ -380,30 +411,47 @@
       }
 
 
-      // Lighting - dramatic to catch facets
-      const ambient = new THREE.AmbientLight(0x334466, 0.5);
+      // Lighting - softer, more ambient with multiple moving sources
+      const ambient = new THREE.AmbientLight(0x445566, 0.6);
       scene.add(ambient);
 
-      // Key light - strong white
-      const keyLight = new THREE.DirectionalLight(0xffffff, 0.9);
+      // Hemisphere light for natural sky/ground gradient
+      const hemi = new THREE.HemisphereLight(0x8899bb, 0x334455, 0.4);
+      scene.add(hemi);
+
+      // Soft key light
+      const keyLight = new THREE.DirectionalLight(0xeeeeff, 0.5);
       keyLight.position.set(8, 12, 8);
       scene.add(keyLight);
 
-      // Fill light - cool blue
-      const fillLight = new THREE.DirectionalLight(0x6688bb, 0.4);
-      fillLight.position.set(-6, 4, 4);
-      scene.add(fillLight);
+      // Multiple soft moving point lights at different speeds
+      const movingLights = [];
 
-      // Rim/back light - catches edges
-      const rimLight = new THREE.DirectionalLight(0x99aacc, 0.5);
-      rimLight.position.set(0, -8, -10);
-      scene.add(rimLight);
+      // Warm accent
+      const light1 = new THREE.PointLight(0xffeedd, 0.35, 60);
+      light1.userData = { speed: 0.15, radius: 15, phase: 0, yOffset: 5 };
+      scene.add(light1);
+      movingLights.push(light1);
 
-      // Moving point light for sparkle effect
-      const sparkle = new THREE.PointLight(0xffffff, 0.6, 50);
-      sparkle.position.set(0, 0, 20);
-      scene.add(sparkle);
-      window.sparkleLight = sparkle;
+      // Cool blue
+      const light2 = new THREE.PointLight(0xaaccff, 0.3, 55);
+      light2.userData = { speed: 0.12, radius: 18, phase: Math.PI * 0.6, yOffset: -3 };
+      scene.add(light2);
+      movingLights.push(light2);
+
+      // Soft white
+      const light3 = new THREE.PointLight(0xffffff, 0.25, 50);
+      light3.userData = { speed: 0.08, radius: 20, phase: Math.PI * 1.2, yOffset: 8 };
+      scene.add(light3);
+      movingLights.push(light3);
+
+      // Subtle violet
+      const light4 = new THREE.PointLight(0xccbbff, 0.2, 45);
+      light4.userData = { speed: 0.18, radius: 12, phase: Math.PI * 0.3, yOffset: -6 };
+      scene.add(light4);
+      movingLights.push(light4);
+
+      window.movingLights = movingLights;
 
       window.addEventListener('resize', onResize);
       animate();
@@ -442,10 +490,14 @@
         if (crystal.position.z < -70) crystal.position.z = 50;
       });
 
-      // Animate sparkle light for dynamic highlights
-      if (window.sparkleLight) {
-        window.sparkleLight.position.x = Math.sin(time * 0.2) * 12;
-        window.sparkleLight.position.y = Math.cos(time * 0.15) * 8;
+      // Animate multiple lights for continuous subtle highlights
+      if (window.movingLights) {
+        window.movingLights.forEach(light => {
+          const d = light.userData;
+          light.position.x = Math.sin(time * d.speed + d.phase) * d.radius;
+          light.position.y = d.yOffset + Math.cos(time * d.speed * 0.7 + d.phase) * 6;
+          light.position.z = 15 + Math.sin(time * d.speed * 0.5 + d.phase * 2) * 10;
+        });
       }
 
       renderer.render(scene, camera);
