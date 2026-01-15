@@ -7,7 +7,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -21,16 +20,21 @@
     }
 
     body {
-      background: #0a0a0f;
+      background: #000;
       color: #e8eef4;
       font-family: 'Inter', system-ui, sans-serif;
     }
 
-    /* Three.js canvas */
-    #canvas-container {
+    #shader-canvas {
       position: fixed;
       inset: 0;
       z-index: 0;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
     }
 
     /* Content overlay */
@@ -74,11 +78,11 @@
 
     /* Content box - crystalline feel */
     .content-box {
-      background: rgba(10, 12, 18, 0.85);
+      background: rgba(5, 8, 18, 0.75);
       padding: 4rem 5rem;
       backdrop-filter: blur(20px);
       max-width: 700px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(100, 150, 255, 0.15);
       clip-path: polygon(
         0% 8%, 3% 0%, 97% 0%, 100% 8%,
         100% 92%, 97% 100%, 3% 100%, 0% 92%
@@ -124,7 +128,7 @@
     .cta {
       display: inline-block;
       padding: 1rem 2.5rem;
-      border: 1px solid rgba(200, 220, 255, 0.3);
+      border: 1px solid rgba(100, 150, 255, 0.3);
       color: #e8eef4;
       text-decoration: none;
       font-size: 0.85rem;
@@ -137,8 +141,8 @@
     }
 
     .cta:hover {
-      background: rgba(200, 220, 255, 0.1);
-      border-color: rgba(200, 220, 255, 0.6);
+      background: rgba(100, 150, 255, 0.15);
+      border-color: rgba(100, 150, 255, 0.6);
     }
 
     /* Navigation dots */
@@ -156,19 +160,19 @@
     .nav-dot {
       width: 8px;
       height: 8px;
-      background: rgba(200, 220, 255, 0.2);
+      background: rgba(100, 150, 255, 0.25);
       cursor: pointer;
       transition: all 0.3s ease;
       clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
     }
 
     .nav-dot.active {
-      background: rgba(200, 220, 255, 0.9);
+      background: rgba(100, 150, 255, 0.9);
       transform: scale(1.5);
     }
 
     .nav-dot:hover {
-      background: rgba(200, 220, 255, 0.5);
+      background: rgba(100, 150, 255, 0.5);
     }
 
     /* Scroll hint */
@@ -187,7 +191,9 @@
   </style>
 </head>
 <body>
-  <div id="canvas-container"></div>
+  <div id="shader-canvas">
+    <canvas id="glcanvas"></canvas>
+  </div>
 
   <div id="content">
     <!-- Slide 0: Hero -->
@@ -238,214 +244,286 @@
   <div id="scroll-hint">Scroll</div>
 
   <script>
-    // ============ THREE.JS SCENE ============
-    const container = document.getElementById('canvas-container');
-    let scene, camera, renderer;
-    let crystals = [];
-    let currentSlide = 0;
-    const totalSlides = 5;
-    let isAnimating = false;
-    let time = 0;
+    // ============ WEBGL SHADER ============
+    const canvas = document.getElementById('glcanvas');
+    const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
 
-    // Camera positions for each slide
-    const cameraStates = [
-      { z: 35, rotY: 0, rotX: 0 },
-      { z: 25, rotY: 0.2, rotX: 0.1 },
-      { z: 15, rotY: -0.15, rotX: -0.05 },
-      { z: 5, rotY: 0.25, rotX: 0.08 },
-      { z: -5, rotY: 0, rotX: 0 }
-    ];
-
-    // Crystal geometries
-    function createCrystalGeometry(type, size) {
-      switch(type) {
-        case 0: // Octahedron - classic crystal
-          return new THREE.OctahedronGeometry(size);
-        case 1: // Icosahedron - complex crystal
-          return new THREE.IcosahedronGeometry(size, 0);
-        case 2: // Elongated crystal (stretched octahedron)
-          const oct = new THREE.OctahedronGeometry(size);
-          oct.scale(1, 2, 1);
-          return oct;
-        case 3: // Tetrahedron - sharp crystal
-          return new THREE.TetrahedronGeometry(size);
-        case 4: // Double-terminated (two octahedrons)
-          return new THREE.OctahedronGeometry(size);
-        default:
-          return new THREE.OctahedronGeometry(size);
-      }
+    if (!gl) {
+      console.error('WebGL not supported');
     }
 
-    // Initialize Three.js
-    function init() {
-      scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x0a0a0f);
-      scene.fog = new THREE.FogExp2(0x0a0a0f, 0.015);
+    // Vertex shader - simple fullscreen quad
+    const vertexShaderSource = `#version 300 es
+      in vec4 a_position;
+      void main() {
+        gl_Position = a_position;
+      }
+    `;
 
-      camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
-      camera.position.z = cameraStates[0].z;
+    // Fragment shader - Alcatraz fractalscape (simplified for single pass)
+    const fragmentShaderSource = `#version 300 es
+      precision highp float;
 
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      container.appendChild(renderer.domElement);
+      uniform vec2 iResolution;
+      uniform float iTime;
+      uniform float iCameraZ;
 
-      // Create crystals
-      const crystalCount = 80;
+      out vec4 fragColor;
 
-      // Crystal color palette - icy blues, purples, clear
-      const colors = [
-        0x88aacc, // ice blue
-        0xaabbdd, // light blue
-        0x99aadd, // periwinkle
-        0xbbccee, // pale blue
-        0xccddff, // near white
-        0x8899bb, // steel blue
-        0xaaaacc, // lavender grey
-      ];
-
-      for (let i = 0; i < crystalCount; i++) {
-        const type = Math.floor(Math.random() * 5);
-        const size = 0.5 + Math.random() * 2.5;
-        const geometry = createCrystalGeometry(type, size);
-
-        // Translucent crystal material
-        const material = new THREE.MeshPhysicalMaterial({
-          color: colors[Math.floor(Math.random() * colors.length)],
-          transparent: true,
-          opacity: 0.3 + Math.random() * 0.4,
-          roughness: 0.1,
-          metalness: 0.1,
-          transmission: 0.5,
-          thickness: 1,
-          side: THREE.DoubleSide,
-          depthWrite: false
-        });
-
-        const crystal = new THREE.Mesh(geometry, material);
-
-        // Spread throughout space
-        crystal.position.x = (Math.random() - 0.5) * 60;
-        crystal.position.y = (Math.random() - 0.5) * 50;
-        crystal.position.z = (Math.random() - 0.5) * 120 - 20;
-
-        // Random orientation
-        crystal.rotation.x = Math.random() * Math.PI;
-        crystal.rotation.y = Math.random() * Math.PI;
-        crystal.rotation.z = Math.random() * Math.PI;
-
-        // Animation parameters - slow, elegant rotation
-        crystal.userData = {
-          rotSpeedX: (Math.random() - 0.5) * 0.003,
-          rotSpeedY: (Math.random() - 0.5) * 0.004,
-          rotSpeedZ: (Math.random() - 0.5) * 0.002,
-          floatSpeed: 0.2 + Math.random() * 0.3,
-          floatAmplitude: 0.3 + Math.random() * 0.8,
-          floatOffset: Math.random() * Math.PI * 2,
-          baseY: crystal.position.y,
-          driftX: (Math.random() - 0.5) * 0.005,
-          driftZ: (Math.random() - 0.5) * 0.008
-        };
-
-        scene.add(crystal);
-        crystals.push(crystal);
+      // 3D noise function (IQ)
+      float noise(vec3 p) {
+        vec3 ip = floor(p);
+        p -= ip;
+        vec3 s = vec3(7.0, 157.0, 113.0);
+        vec4 h = vec4(0.0, s.yz, s.y + s.z) + dot(ip, s);
+        p = p * p * (3.0 - 2.0 * p);
+        h = mix(fract(sin(h) * 43758.5), fract(sin(h + s.x) * 43758.5), p.x);
+        h.xy = mix(h.xz, h.yw, p.y);
+        return mix(h.x, h.y, p.z);
       }
 
-      // Add some edge highlights with wireframe crystals
-      for (let i = 0; i < 20; i++) {
-        const size = 1 + Math.random() * 3;
-        const geometry = createCrystalGeometry(Math.floor(Math.random() * 3), size);
+      // KIFS fractal
+      int meep = 0;
+      float kifs(vec3 p) {
+        vec3 offs = vec3(1.0, 0.75, 0.5);
+        vec2 a = sin(vec2(0.0, 1.57) + 1.57 / 2.0);
+        vec2 b = sin(vec2(0.0, 1.57) + 1.57 / 4.0);
+        float s = 5.0;
+        float d = 1e5;
+        p = abs(fract(p * 0.5) * 2.0 - 1.0);
+        float amp = 1.0 / s;
 
-        const material = new THREE.MeshBasicMaterial({
-          color: 0xffffff,
-          wireframe: true,
-          transparent: true,
-          opacity: 0.08
-        });
-
-        const wire = new THREE.Mesh(geometry, material);
-        wire.position.x = (Math.random() - 0.5) * 70;
-        wire.position.y = (Math.random() - 0.5) * 50;
-        wire.position.z = (Math.random() - 0.5) * 120 - 20;
-        wire.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-
-        wire.userData = {
-          rotSpeedX: (Math.random() - 0.5) * 0.002,
-          rotSpeedY: (Math.random() - 0.5) * 0.003,
-          rotSpeedZ: (Math.random() - 0.5) * 0.001,
-          floatSpeed: 0.15 + Math.random() * 0.2,
-          floatAmplitude: 0.5 + Math.random() * 1,
-          floatOffset: Math.random() * Math.PI * 2,
-          baseY: wire.position.y,
-          driftX: (Math.random() - 0.5) * 0.003,
-          driftZ: (Math.random() - 0.5) * 0.005
-        };
-
-        scene.add(wire);
-        crystals.push(wire);
+        for(int i = 0; i < 5; i++) {
+          p.xy = mat2(a.y, -a.x, a) * p.xy;
+          p.yz = mat2(b.y, -b.x, b) * p.yz;
+          p = abs(p);
+          if(p.x < p.y) p.xy = p.yx;
+          if(p.x < p.z) p.xz = p.zx;
+          if(p.y < p.z) p.yz = p.zy;
+          p = p * s + offs * (1.0 - s);
+          p.z -= step(p.z, offs.z * (1.0 - s) * 0.5) * offs.z * (1.0 - s);
+          p = abs(p);
+          d = min(d, max(max(p.x, p.y), p.z) * amp);
+          amp /= s;
+          if(i == 1 && p.x > (9.0 + 1.0 * sin(0.209 * iTime + 1.0))) meep = 1;
+        }
+        return d - 0.29;
       }
 
-      // Lighting - cool, ethereal
-      const ambient = new THREE.AmbientLight(0x4466aa, 0.4);
-      scene.add(ambient);
+      float map(vec3 p) {
+        float f = -0.05 - kifs(0.4 * p);
+        if(meep == 0) f += 0.002 * noise(p * 70.0);
+        return f;
+      }
 
-      const light1 = new THREE.DirectionalLight(0xffffff, 0.6);
-      light1.position.set(5, 10, 5);
-      scene.add(light1);
+      vec3 calcNormal(vec3 pos) {
+        float eps = 0.0001;
+        float d = map(pos);
+        return normalize(vec3(
+          map(pos + vec3(eps, 0, 0)) - d,
+          map(pos + vec3(0, eps, 0)) - d,
+          map(pos + vec3(0, 0, eps)) - d
+        ));
+      }
 
-      const light2 = new THREE.DirectionalLight(0x8899ff, 0.3);
-      light2.position.set(-5, -5, 10);
-      scene.add(light2);
+      float castRay(vec3 ro, vec3 rd) {
+        float function_sign = (map(ro) < 0.0) ? -1.0 : 1.0;
+        float precis = 0.0001;
+        float h = precis * 2.0;
+        float t = 0.0;
+        for(int i = 0; i < 120; i++) {
+          if(abs(h) < precis || t > 12.0) break;
+          h = function_sign * map(ro + rd * t);
+          t += h;
+        }
+        return t;
+      }
 
-      // Subtle point light for sparkle
-      const point = new THREE.PointLight(0xaaccff, 0.5, 50);
-      point.position.set(0, 0, 20);
-      scene.add(point);
+      float refr(vec3 pos, vec3 lig, vec3 dir, vec3 nor, float angle, out float t2, out vec3 nor2) {
+        float h = 0.0;
+        t2 = 2.0;
+        vec3 dir2 = refract(dir, nor, angle);
+        for(int i = 0; i < 50; i++) {
+          if(abs(h) > 3.0) break;
+          h = map(pos + dir2 * t2);
+          t2 -= h;
+        }
+        nor2 = calcNormal(pos + dir2 * t2);
+        return(0.5 * clamp(dot(-lig, nor2), 0.0, 1.0) + pow(max(dot(reflect(dir2, nor2), lig), 0.0), 8.0));
+      }
 
-      window.addEventListener('resize', onResize);
-      animate();
+      float softshadow(vec3 ro, vec3 rd) {
+        float sh = 1.0;
+        float t = 0.02;
+        float h = 0.0;
+        for(int i = 0; i < 22; i++) {
+          if(t > 20.0) continue;
+          h = map(ro + rd * t);
+          sh = min(sh, 4.0 * h / t);
+          t += h;
+        }
+        return sh;
+      }
+
+      void main() {
+        float bounce = abs(fract(0.05 * iTime) - 0.5) * 20.0;
+        meep = 0;
+        vec2 uv = gl_FragCoord.xy / iResolution.xy;
+        vec2 p = uv * 2.0 - 1.0;
+
+        float wobble = (fract(0.1 * (iTime - 1.0)) >= 0.9) ? fract(-iTime) * 0.1 * sin(30.0 * iTime) : 0.0;
+
+        vec3 dir = normalize(vec3(2.0 * gl_FragCoord.xy - iResolution.xy, iResolution.y));
+        vec3 org = vec3(0.0, 2.0 * wobble, -3.0);
+
+        vec2 m = sin(vec2(0.0, 1.57) + iTime / 8.0);
+        dir.xy = mat2(m.y, -m.x, m) * dir.xy;
+        dir.xz = mat2(m.y, -m.x, m) * dir.xz;
+        org = vec3(0.0, 2.0 + wobble, 0.0 + 8.0 * sin(bounce / 3.0) + iCameraZ);
+
+        vec3 color = vec3(0.0);
+        vec3 color2 = vec3(0.0);
+        float t = castRay(org, dir);
+        vec3 pos = org + dir * t;
+        vec3 nor = calcNormal(pos);
+
+        vec3 lig = normalize(-pos);
+        float depth = clamp((1.0 - 0.09 * t), 0.0, 1.0);
+        vec3 pos2, nor2 = vec3(0.0);
+
+        if(t < 12.0) {
+          color2 = vec3(max(dot(lig, nor), 0.0) + pow(max(dot(reflect(dir, nor), lig), 0.0), 16.0));
+          color2 *= clamp(softshadow(pos, lig), 0.0, 1.0);
+
+          if(meep == 1) {
+            float t2;
+            color2.r += refr(pos, lig, dir, nor, 0.91, t2, nor2) * depth;
+            color2.g += refr(pos, lig, dir, nor, 0.90, t2, nor2) * depth;
+            color2.b += refr(pos, lig, dir, nor, 0.89, t2, nor2) * depth;
+            color2 -= clamp(0.1 * t2, 0.0, 1.0);
+          }
+        }
+
+        float tmp = 0.0;
+        float T = 1.0;
+        float intensity = 0.1 * -sin(0.209 * iTime + 1.0) + 0.05;
+
+        for(int i = 0; i < 128; i++) {
+          float density = 0.0;
+          float nebula = noise(org + bounce);
+          density = (meep == 1) ? intensity - map(org + 0.5 * nor2) * nebula : 0.7 * intensity - map(org) * nebula;
+          if(density > 0.0) {
+            tmp = density / 128.0;
+            T *= 1.0 - tmp * 100.0;
+            if(T <= 0.0) break;
+          }
+          org += dir * 0.078;
+        }
+
+        vec3 basecol = vec3(1.0/16.0, 0.25, 1.0);
+        T = clamp(T, 0.0, 1.5);
+        color += basecol * exp(4.0 * (0.5 - T) - 0.8);
+        color2 *= depth;
+        color2 += (1.0 - depth) * noise(6.0 * dir + 0.3 * iTime) * 0.1;
+
+        fragColor = vec4(vec3(1.0 * color + 0.8 * color2) * 1.3, 1.0);
+      }
+    `;
+
+    // Compile shader
+    function createShader(gl, type, source) {
+      const shader = gl.createShader(type);
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.error('Shader compile error:', gl.getShaderInfoLog(shader));
+        gl.deleteShader(shader);
+        return null;
+      }
+      return shader;
     }
 
-    function onResize() {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+    // Create program
+    function createProgram(gl, vertexShader, fragmentShader) {
+      const program = gl.createProgram();
+      gl.attachShader(program, vertexShader);
+      gl.attachShader(program, fragmentShader);
+      gl.linkProgram(program);
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error('Program link error:', gl.getProgramInfoLog(program));
+        gl.deleteProgram(program);
+        return null;
+      }
+      return program;
     }
 
-    // Animation loop
-    function animate() {
-      requestAnimationFrame(animate);
-      time += 0.016;
+    const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+    const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+    const program = createProgram(gl, vertexShader, fragmentShader);
 
-      crystals.forEach(crystal => {
-        const d = crystal.userData;
+    // Fullscreen quad
+    const positions = new Float32Array([
+      -1, -1,
+       1, -1,
+      -1,  1,
+      -1,  1,
+       1, -1,
+       1,  1,
+    ]);
 
-        // Slow elegant rotation
-        crystal.rotation.x += d.rotSpeedX;
-        crystal.rotation.y += d.rotSpeedY;
-        crystal.rotation.z += d.rotSpeedZ;
+    const positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
 
-        // Gentle floating
-        crystal.position.y = d.baseY + Math.sin(time * d.floatSpeed + d.floatOffset) * d.floatAmplitude;
+    const positionLocation = gl.getAttribLocation(program, 'a_position');
+    const resolutionLocation = gl.getUniformLocation(program, 'iResolution');
+    const timeLocation = gl.getUniformLocation(program, 'iTime');
+    const cameraZLocation = gl.getUniformLocation(program, 'iCameraZ');
 
-        // Very slow drift
-        crystal.position.x += d.driftX;
-        crystal.position.z += d.driftZ;
+    let startTime = Date.now();
+    let currentCameraZ = 0;
+    let targetCameraZ = 0;
 
-        // Wrap around
-        if (crystal.position.x > 35) crystal.position.x = -35;
-        if (crystal.position.x < -35) crystal.position.x = 35;
-        if (crystal.position.z > 50) crystal.position.z = -70;
-        if (crystal.position.z < -70) crystal.position.z = 50;
-      });
-
-      renderer.render(scene, camera);
+    function resize() {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      gl.viewport(0, 0, canvas.width, canvas.height);
     }
+
+    function render() {
+      const time = (Date.now() - startTime) / 1000;
+
+      // Smooth camera movement
+      currentCameraZ += (targetCameraZ - currentCameraZ) * 0.05;
+
+      gl.useProgram(program);
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+      gl.enableVertexAttribArray(positionLocation);
+      gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+      gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
+      gl.uniform1f(timeLocation, time);
+      gl.uniform1f(cameraZLocation, currentCameraZ);
+
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+      requestAnimationFrame(render);
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+    render();
 
     // ============ SLIDE NAVIGATION ============
     const slides = document.querySelectorAll('.slide');
     const navDotsContainer = document.getElementById('nav-dots');
     const scrollHint = document.getElementById('scroll-hint');
+    const totalSlides = 5;
+    let currentSlide = 0;
+    let isAnimating = false;
+
+    // Camera Z positions for each slide
+    const cameraStates = [0, 5, 10, 15, 20];
 
     // Create nav dots
     for (let i = 0; i < totalSlides; i++) {
@@ -466,37 +544,13 @@
       navDots[currentSlide].classList.remove('active');
       navDots[index].classList.add('active');
 
-      // Animate camera
-      const startZ = camera.position.z;
-      const startRotY = camera.rotation.y;
-      const startRotX = camera.rotation.x;
-      const endZ = cameraStates[index].z;
-      const endRotY = cameraStates[index].rotY;
-      const endRotX = cameraStates[index].rotX;
-      const duration = 1400;
-      const startTime = Date.now();
+      // Move camera through the fractal
+      targetCameraZ = cameraStates[index];
 
-      function animateCamera() {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-
-        // Smooth easing
-        const ease = progress < 0.5
-          ? 4 * progress * progress * progress
-          : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-
-        camera.position.z = startZ + (endZ - startZ) * ease;
-        camera.rotation.y = startRotY + (endRotY - startRotY) * ease;
-        camera.rotation.x = startRotX + (endRotX - startRotX) * ease;
-
-        if (progress < 1) {
-          requestAnimationFrame(animateCamera);
-        } else {
-          currentSlide = index;
-          isAnimating = false;
-        }
-      }
-      animateCamera();
+      setTimeout(() => {
+        currentSlide = index;
+        isAnimating = false;
+      }, 800);
 
       scrollHint.style.opacity = '0';
     }
@@ -546,9 +600,6 @@
         }
       }
     });
-
-    // Initialize
-    init();
   </script>
 </body>
 </html>
