@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      background: #0a0a0f;
+      color: #e8eef4;
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+
+    /* Three.js canvas */
+    #canvas-container {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+    }
+
+    /* Content overlay */
+    #content {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      pointer-events: none;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 8vw;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+      pointer-events: none;
+    }
+
+    .slide.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .slide.center {
+      align-items: center;
+      text-align: center;
+    }
+
+    .slide.right {
+      align-items: flex-end;
+      text-align: right;
+    }
+
+    /* Content box - crystalline feel */
+    .content-box {
+      background: rgba(10, 12, 18, 0.85);
+      padding: 4rem 5rem;
+      backdrop-filter: blur(20px);
+      max-width: 700px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      clip-path: polygon(
+        0% 8%, 3% 0%, 97% 0%, 100% 8%,
+        100% 92%, 97% 100%, 3% 100%, 0% 92%
+      );
+    }
+
+    .label {
+      font-size: 0.7rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      opacity: 0.5;
+      margin-bottom: 1.5rem;
+    }
+
+    h1 {
+      font-size: clamp(2.5rem, 8vw, 5rem);
+      font-weight: 200;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    h2 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 300;
+      line-height: 1.3;
+      margin-bottom: 1.5rem;
+    }
+
+    p {
+      font-size: 1.1rem;
+      font-weight: 300;
+      line-height: 1.8;
+      opacity: 0.8;
+    }
+
+    .tagline {
+      font-size: clamp(1rem, 2vw, 1.3rem);
+      opacity: 0.7;
+      letter-spacing: 0.05em;
+    }
+
+    .cta {
+      display: inline-block;
+      padding: 1rem 2.5rem;
+      border: 1px solid rgba(200, 220, 255, 0.3);
+      color: #e8eef4;
+      text-decoration: none;
+      font-size: 0.85rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      transition: all 0.3s ease;
+      pointer-events: auto;
+      margin-top: 1rem;
+      clip-path: polygon(0% 20%, 5% 0%, 95% 0%, 100% 20%, 100% 80%, 95% 100%, 5% 100%, 0% 80%);
+    }
+
+    .cta:hover {
+      background: rgba(200, 220, 255, 0.1);
+      border-color: rgba(200, 220, 255, 0.6);
+    }
+
+    /* Navigation dots */
+    #nav-dots {
+      position: fixed;
+      right: 3rem;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .nav-dot {
+      width: 8px;
+      height: 8px;
+      background: rgba(200, 220, 255, 0.2);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    }
+
+    .nav-dot.active {
+      background: rgba(200, 220, 255, 0.9);
+      transform: scale(1.5);
+    }
+
+    .nav-dot:hover {
+      background: rgba(200, 220, 255, 0.5);
+    }
+
+    /* Scroll hint */
+    #scroll-hint {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      opacity: 0.4;
+      z-index: 20;
+      transition: opacity 0.5s ease;
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+
+  <div id="content">
+    <!-- Slide 0: Hero -->
+    <div class="slide center active">
+      <div class="content-box">
+        <h1>Kide</h1>
+        <p class="tagline">Structure forming slowly</p>
+      </div>
+    </div>
+
+    <!-- Slide 1: Sellers -->
+    <div class="slide">
+      <div class="content-box">
+        <div class="label">For Sellers</div>
+        <h2>Clarity from complexity</h2>
+        <p>When you're ready for your next chapter, we offer fair terms and a commitment to preserve what you've built. Your legacy crystallizes into something lasting.</p>
+      </div>
+    </div>
+
+    <!-- Slide 2: Investors -->
+    <div class="slide right">
+      <div class="content-box">
+        <div class="label">For Investors</div>
+        <h2>Patience reveals structure</h2>
+        <p>Curated opportunities in sustainable companies with strong fundamentals. For institutions and family offices seeking long-term value.</p>
+      </div>
+    </div>
+
+    <!-- Slide 3: Operators -->
+    <div class="slide">
+      <div class="content-box">
+        <div class="label">For Operators</div>
+        <h2>Shape what's forming</h2>
+        <p>Lead a Kide portfolio company. Real ownership, meaningful work, lasting impact.</p>
+      </div>
+    </div>
+
+    <!-- Slide 4: Closing -->
+    <div class="slide center">
+      <div class="content-box">
+        <h2>Let's talk</h2>
+        <a href="mailto:hello@kide.fi" class="cta">Start a conversation</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="nav-dots"></div>
+  <div id="scroll-hint">Scroll</div>
+
+  <script>
+    // ============ THREE.JS SCENE ============
+    const container = document.getElementById('canvas-container');
+    let scene, camera, renderer;
+    let crystals = [];
+    let currentSlide = 0;
+    const totalSlides = 5;
+    let isAnimating = false;
+    let time = 0;
+
+    // Camera positions for each slide
+    const cameraStates = [
+      { z: 35, rotY: 0, rotX: 0 },
+      { z: 25, rotY: 0.2, rotX: 0.1 },
+      { z: 15, rotY: -0.15, rotX: -0.05 },
+      { z: 5, rotY: 0.25, rotX: 0.08 },
+      { z: -5, rotY: 0, rotX: 0 }
+    ];
+
+    // Crystal geometries
+    function createCrystalGeometry(type, size) {
+      switch(type) {
+        case 0: // Octahedron - classic crystal
+          return new THREE.OctahedronGeometry(size);
+        case 1: // Icosahedron - complex crystal
+          return new THREE.IcosahedronGeometry(size, 0);
+        case 2: // Elongated crystal (stretched octahedron)
+          const oct = new THREE.OctahedronGeometry(size);
+          oct.scale(1, 2, 1);
+          return oct;
+        case 3: // Tetrahedron - sharp crystal
+          return new THREE.TetrahedronGeometry(size);
+        case 4: // Double-terminated (two octahedrons)
+          return new THREE.OctahedronGeometry(size);
+        default:
+          return new THREE.OctahedronGeometry(size);
+      }
+    }
+
+    // Initialize Three.js
+    function init() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0a0a0f);
+      scene.fog = new THREE.FogExp2(0x0a0a0f, 0.015);
+
+      camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
+      camera.position.z = cameraStates[0].z;
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      // Create crystals
+      const crystalCount = 80;
+
+      // Crystal color palette - icy blues, purples, clear
+      const colors = [
+        0x88aacc, // ice blue
+        0xaabbdd, // light blue
+        0x99aadd, // periwinkle
+        0xbbccee, // pale blue
+        0xccddff, // near white
+        0x8899bb, // steel blue
+        0xaaaacc, // lavender grey
+      ];
+
+      for (let i = 0; i < crystalCount; i++) {
+        const type = Math.floor(Math.random() * 5);
+        const size = 0.5 + Math.random() * 2.5;
+        const geometry = createCrystalGeometry(type, size);
+
+        // Translucent crystal material
+        const material = new THREE.MeshPhysicalMaterial({
+          color: colors[Math.floor(Math.random() * colors.length)],
+          transparent: true,
+          opacity: 0.3 + Math.random() * 0.4,
+          roughness: 0.1,
+          metalness: 0.1,
+          transmission: 0.5,
+          thickness: 1,
+          side: THREE.DoubleSide,
+          depthWrite: false
+        });
+
+        const crystal = new THREE.Mesh(geometry, material);
+
+        // Spread throughout space
+        crystal.position.x = (Math.random() - 0.5) * 60;
+        crystal.position.y = (Math.random() - 0.5) * 50;
+        crystal.position.z = (Math.random() - 0.5) * 120 - 20;
+
+        // Random orientation
+        crystal.rotation.x = Math.random() * Math.PI;
+        crystal.rotation.y = Math.random() * Math.PI;
+        crystal.rotation.z = Math.random() * Math.PI;
+
+        // Animation parameters - slow, elegant rotation
+        crystal.userData = {
+          rotSpeedX: (Math.random() - 0.5) * 0.003,
+          rotSpeedY: (Math.random() - 0.5) * 0.004,
+          rotSpeedZ: (Math.random() - 0.5) * 0.002,
+          floatSpeed: 0.2 + Math.random() * 0.3,
+          floatAmplitude: 0.3 + Math.random() * 0.8,
+          floatOffset: Math.random() * Math.PI * 2,
+          baseY: crystal.position.y,
+          driftX: (Math.random() - 0.5) * 0.005,
+          driftZ: (Math.random() - 0.5) * 0.008
+        };
+
+        scene.add(crystal);
+        crystals.push(crystal);
+      }
+
+      // Add some edge highlights with wireframe crystals
+      for (let i = 0; i < 20; i++) {
+        const size = 1 + Math.random() * 3;
+        const geometry = createCrystalGeometry(Math.floor(Math.random() * 3), size);
+
+        const material = new THREE.MeshBasicMaterial({
+          color: 0xffffff,
+          wireframe: true,
+          transparent: true,
+          opacity: 0.08
+        });
+
+        const wire = new THREE.Mesh(geometry, material);
+        wire.position.x = (Math.random() - 0.5) * 70;
+        wire.position.y = (Math.random() - 0.5) * 50;
+        wire.position.z = (Math.random() - 0.5) * 120 - 20;
+        wire.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+
+        wire.userData = {
+          rotSpeedX: (Math.random() - 0.5) * 0.002,
+          rotSpeedY: (Math.random() - 0.5) * 0.003,
+          rotSpeedZ: (Math.random() - 0.5) * 0.001,
+          floatSpeed: 0.15 + Math.random() * 0.2,
+          floatAmplitude: 0.5 + Math.random() * 1,
+          floatOffset: Math.random() * Math.PI * 2,
+          baseY: wire.position.y,
+          driftX: (Math.random() - 0.5) * 0.003,
+          driftZ: (Math.random() - 0.5) * 0.005
+        };
+
+        scene.add(wire);
+        crystals.push(wire);
+      }
+
+      // Lighting - cool, ethereal
+      const ambient = new THREE.AmbientLight(0x4466aa, 0.4);
+      scene.add(ambient);
+
+      const light1 = new THREE.DirectionalLight(0xffffff, 0.6);
+      light1.position.set(5, 10, 5);
+      scene.add(light1);
+
+      const light2 = new THREE.DirectionalLight(0x8899ff, 0.3);
+      light2.position.set(-5, -5, 10);
+      scene.add(light2);
+
+      // Subtle point light for sparkle
+      const point = new THREE.PointLight(0xaaccff, 0.5, 50);
+      point.position.set(0, 0, 20);
+      scene.add(point);
+
+      window.addEventListener('resize', onResize);
+      animate();
+    }
+
+    function onResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+      time += 0.016;
+
+      crystals.forEach(crystal => {
+        const d = crystal.userData;
+
+        // Slow elegant rotation
+        crystal.rotation.x += d.rotSpeedX;
+        crystal.rotation.y += d.rotSpeedY;
+        crystal.rotation.z += d.rotSpeedZ;
+
+        // Gentle floating
+        crystal.position.y = d.baseY + Math.sin(time * d.floatSpeed + d.floatOffset) * d.floatAmplitude;
+
+        // Very slow drift
+        crystal.position.x += d.driftX;
+        crystal.position.z += d.driftZ;
+
+        // Wrap around
+        if (crystal.position.x > 35) crystal.position.x = -35;
+        if (crystal.position.x < -35) crystal.position.x = 35;
+        if (crystal.position.z > 50) crystal.position.z = -70;
+        if (crystal.position.z < -70) crystal.position.z = 50;
+      });
+
+      renderer.render(scene, camera);
+    }
+
+    // ============ SLIDE NAVIGATION ============
+    const slides = document.querySelectorAll('.slide');
+    const navDotsContainer = document.getElementById('nav-dots');
+    const scrollHint = document.getElementById('scroll-hint');
+
+    // Create nav dots
+    for (let i = 0; i < totalSlides; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+      dot.addEventListener('click', () => goToSlide(i));
+      navDotsContainer.appendChild(dot);
+    }
+    const navDots = document.querySelectorAll('.nav-dot');
+
+    function goToSlide(index) {
+      if (isAnimating || index === currentSlide || index < 0 || index >= totalSlides) return;
+      isAnimating = true;
+
+      slides[currentSlide].classList.remove('active');
+      slides[index].classList.add('active');
+
+      navDots[currentSlide].classList.remove('active');
+      navDots[index].classList.add('active');
+
+      // Animate camera
+      const startZ = camera.position.z;
+      const startRotY = camera.rotation.y;
+      const startRotX = camera.rotation.x;
+      const endZ = cameraStates[index].z;
+      const endRotY = cameraStates[index].rotY;
+      const endRotX = cameraStates[index].rotX;
+      const duration = 1400;
+      const startTime = Date.now();
+
+      function animateCamera() {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Smooth easing
+        const ease = progress < 0.5
+          ? 4 * progress * progress * progress
+          : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+        camera.position.z = startZ + (endZ - startZ) * ease;
+        camera.rotation.y = startRotY + (endRotY - startRotY) * ease;
+        camera.rotation.x = startRotX + (endRotX - startRotX) * ease;
+
+        if (progress < 1) {
+          requestAnimationFrame(animateCamera);
+        } else {
+          currentSlide = index;
+          isAnimating = false;
+        }
+      }
+      animateCamera();
+
+      scrollHint.style.opacity = '0';
+    }
+
+    // Scroll handling
+    let scrollAccumulator = 0;
+    const scrollThreshold = 50;
+
+    window.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      scrollAccumulator += e.deltaY;
+
+      if (Math.abs(scrollAccumulator) > scrollThreshold) {
+        if (scrollAccumulator > 0) {
+          goToSlide(currentSlide + 1);
+        } else {
+          goToSlide(currentSlide - 1);
+        }
+        scrollAccumulator = 0;
+      }
+    }, { passive: false });
+
+    // Keyboard navigation
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+        goToSlide(currentSlide + 1);
+      } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+        goToSlide(currentSlide - 1);
+      }
+    });
+
+    // Touch handling
+    let touchStartY = 0;
+    window.addEventListener('touchstart', (e) => {
+      touchStartY = e.touches[0].clientY;
+    });
+
+    window.addEventListener('touchend', (e) => {
+      const touchEndY = e.changedTouches[0].clientY;
+      const diff = touchStartY - touchEndY;
+
+      if (Math.abs(diff) > 50) {
+        if (diff > 0) {
+          goToSlide(currentSlide + 1);
+        } else {
+          goToSlide(currentSlide - 1);
+        }
+      }
+    });
+
+    // Initialize
+    init();
+  </script>
+</body>
+</html>
