@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -184,9 +184,57 @@
       z-index: 20;
       transition: opacity 0.5s ease;
     }
+
+    /* Language toggle */
+    .lang-toggle {
+      position: fixed;
+      top: 2rem;
+      right: 3rem;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      background: rgba(10, 12, 18, 0.6);
+      border: 1px solid rgba(200, 220, 255, 0.2);
+      padding: 0.5rem 0.85rem;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      transition: all 0.3s ease;
+      clip-path: polygon(0% 20%, 5% 0%, 95% 0%, 100% 20%, 100% 80%, 95% 100%, 5% 100%, 0% 80%);
+      backdrop-filter: blur(10px);
+    }
+
+    .lang-toggle:hover {
+      border-color: rgba(200, 220, 255, 0.5);
+      background: rgba(10, 12, 18, 0.8);
+    }
+
+    .lang-option {
+      color: #e8eef4;
+      opacity: 0.4;
+      transition: opacity 0.2s;
+    }
+
+    .lang-option.active {
+      opacity: 1;
+    }
+
+    .lang-divider {
+      color: #e8eef4;
+      opacity: 0.3;
+    }
   </style>
 </head>
 <body>
+  <!-- Language Toggle -->
+  <button class="lang-toggle" id="lang-toggle">
+    <span class="lang-option active" data-lang="fi">FI</span>
+    <span class="lang-divider">/</span>
+    <span class="lang-option" data-lang="en">EN</span>
+  </button>
+
   <div id="canvas-container"></div>
 
   <div id="content">
@@ -194,48 +242,48 @@
     <div class="slide center active">
       <div class="content-box">
         <h1>Kide</h1>
-        <p class="tagline">A Nordic Investment Firm</p>
+        <p class="tagline" data-i18n="hero.tagline">Pohjoismainen sijoitusyhtiö</p>
       </div>
     </div>
 
     <!-- Slide 1: Sellers -->
     <div class="slide">
       <div class="content-box">
-        <div class="label">For Sellers</div>
-        <h2>Your legacy, preserved</h2>
-        <p>When it's time to move on, we offer fair terms and a commitment to protect what you've built. Your company stays in good hands.</p>
+        <div class="label" data-i18n="sellers.label">Myyjille</div>
+        <h2 data-i18n="sellers.title">Perintösi turvassa</h2>
+        <p data-i18n="sellers.desc">Kun on aika siirtyä eteenpäin, tarjoamme reilut ehdot ja sitoudumme suojelemaan rakentamaasi. Yrityksesi jää hyviin käsiin.</p>
       </div>
     </div>
 
     <!-- Slide 2: Investors -->
     <div class="slide right">
       <div class="content-box">
-        <div class="label">For Investors</div>
-        <h2>Patient capital, lasting returns</h2>
-        <p>Curated opportunities in sustainable companies with strong fundamentals. For institutions and family offices seeking long-term value.</p>
+        <div class="label" data-i18n="investors.label">Sijoittajille</div>
+        <h2 data-i18n="investors.title">Kärsivällistä pääomaa, kestäviä tuottoja</h2>
+        <p data-i18n="investors.desc">Valikoituja mahdollisuuksia kestäviin yrityksiin, joilla on vahvat perustekijät. Instituutioille ja family officeille, jotka etsivät pitkäaikaista arvoa.</p>
       </div>
     </div>
 
     <!-- Slide 3: Operators -->
     <div class="slide">
       <div class="content-box">
-        <div class="label">For Operators</div>
-        <h2>Build something that lasts</h2>
-        <p>Lead a Kide portfolio company. Real ownership, meaningful work, lasting impact.</p>
+        <div class="label" data-i18n="operators.label">Operoijille</div>
+        <h2 data-i18n="operators.title">Rakenna jotain pysyvää</h2>
+        <p data-i18n="operators.desc">Johda Kide-portfolioyhtiötä. Todellista omistajuutta, merkityksellistä työtä, kestävää vaikutusta.</p>
       </div>
     </div>
 
     <!-- Slide 4: Closing -->
     <div class="slide center">
       <div class="content-box">
-        <h2>Let's talk</h2>
-        <a href="mailto:hello@kide.fi" class="cta">Start a conversation</a>
+        <h2 data-i18n="contact.title">Keskustellaan</h2>
+        <a href="mailto:hello@kide.fi" class="cta" data-i18n="contact.cta">Aloita keskustelu</a>
       </div>
     </div>
   </div>
 
   <div id="nav-dots"></div>
-  <div id="scroll-hint">Scroll</div>
+  <div id="scroll-hint" data-i18n="scroll">Vieritä</div>
 
   <script>
     // ============ THREE.JS SCENE ============
@@ -745,6 +793,71 @@
         }
       }
     });
+
+    // ============ TRANSLATIONS ============
+    const translations = {
+      fi: {
+        'hero.tagline': 'Pohjoismainen sijoitusyhtiö',
+        'sellers.label': 'Myyjille',
+        'sellers.title': 'Perintösi turvassa',
+        'sellers.desc': 'Kun on aika siirtyä eteenpäin, tarjoamme reilut ehdot ja sitoudumme suojelemaan rakentamaasi. Yrityksesi jää hyviin käsiin.',
+        'investors.label': 'Sijoittajille',
+        'investors.title': 'Kärsivällistä pääomaa, kestäviä tuottoja',
+        'investors.desc': 'Valikoituja mahdollisuuksia kestäviin yrityksiin, joilla on vahvat perustekijät. Instituutioille ja family officeille, jotka etsivät pitkäaikaista arvoa.',
+        'operators.label': 'Operoijille',
+        'operators.title': 'Rakenna jotain pysyvää',
+        'operators.desc': 'Johda Kide-portfolioyhtiötä. Todellista omistajuutta, merkityksellistä työtä, kestävää vaikutusta.',
+        'contact.title': 'Keskustellaan',
+        'contact.cta': 'Aloita keskustelu',
+        'scroll': 'Vieritä'
+      },
+      en: {
+        'hero.tagline': 'A Nordic Investment Firm',
+        'sellers.label': 'For Sellers',
+        'sellers.title': 'Your legacy, preserved',
+        'sellers.desc': 'When it\'s time to move on, we offer fair terms and a commitment to protect what you\'ve built. Your company stays in good hands.',
+        'investors.label': 'For Investors',
+        'investors.title': 'Patient capital, lasting returns',
+        'investors.desc': 'Curated opportunities in sustainable companies with strong fundamentals. For institutions and family offices seeking long-term value.',
+        'operators.label': 'For Operators',
+        'operators.title': 'Build something that lasts',
+        'operators.desc': 'Lead a Kide portfolio company. Real ownership, meaningful work, lasting impact.',
+        'contact.title': 'Let\'s talk',
+        'contact.cta': 'Start a conversation',
+        'scroll': 'Scroll'
+      }
+    };
+
+    let currentLang = 'fi';
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      const t = translations[lang];
+
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (t[key]) {
+          el.textContent = t[key];
+        }
+      });
+
+      document.querySelectorAll('.lang-option').forEach(opt => {
+        opt.classList.toggle('active', opt.dataset.lang === lang);
+      });
+
+      document.documentElement.lang = lang;
+      localStorage.setItem('kide2-lang', lang);
+    }
+
+    document.getElementById('lang-toggle').addEventListener('click', () => {
+      setLanguage(currentLang === 'fi' ? 'en' : 'fi');
+    });
+
+    // Check stored preference
+    const storedLang = localStorage.getItem('kide2-lang');
+    if (storedLang && storedLang !== currentLang) {
+      setLanguage(storedLang);
+    }
 
     // Initialize
     init();
