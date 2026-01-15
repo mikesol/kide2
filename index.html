@@ -302,6 +302,8 @@
         0xccddff, // near white
         0x8899bb, // steel blue
         0xaaaacc, // lavender grey
+        0xc4b7d4, // soft amethyst
+        0x9fb8c7, // glacier
       ];
 
       for (let i = 0; i < crystalCount; i++) {
@@ -309,18 +311,44 @@
         const size = 0.5 + Math.random() * 2.5;
         const geometry = createCrystalGeometry(type, size);
 
-        // Translucent crystal material
-        const material = new THREE.MeshPhysicalMaterial({
-          color: colors[Math.floor(Math.random() * colors.length)],
-          transparent: true,
-          opacity: 0.3 + Math.random() * 0.4,
-          roughness: 0.1,
-          metalness: 0.1,
-          transmission: 0.5,
-          thickness: 1,
-          side: THREE.DoubleSide,
-          depthWrite: false
-        });
+        // Vary crystal appearance
+        const variant = Math.random();
+        let material;
+
+        if (variant < 0.4) {
+          // Clear crystals - higher opacity, reflective
+          material = new THREE.MeshStandardMaterial({
+            color: colors[Math.floor(Math.random() * colors.length)],
+            transparent: true,
+            opacity: 0.5 + Math.random() * 0.35,
+            roughness: 0.05 + Math.random() * 0.15,
+            metalness: 0.3 + Math.random() * 0.3,
+            side: THREE.DoubleSide,
+            depthWrite: false
+          });
+        } else if (variant < 0.7) {
+          // Frosted crystals - more opaque, rougher
+          material = new THREE.MeshStandardMaterial({
+            color: colors[Math.floor(Math.random() * colors.length)],
+            transparent: true,
+            opacity: 0.6 + Math.random() * 0.3,
+            roughness: 0.4 + Math.random() * 0.3,
+            metalness: 0.1,
+            side: THREE.DoubleSide,
+            depthWrite: false
+          });
+        } else {
+          // Gem-like - very reflective
+          material = new THREE.MeshStandardMaterial({
+            color: colors[Math.floor(Math.random() * colors.length)],
+            transparent: true,
+            opacity: 0.7 + Math.random() * 0.25,
+            roughness: 0.0,
+            metalness: 0.6 + Math.random() * 0.3,
+            side: THREE.DoubleSide,
+            depthWrite: false
+          });
+        }
 
         const crystal = new THREE.Mesh(geometry, material);
 
@@ -351,56 +379,31 @@
         crystals.push(crystal);
       }
 
-      // Add some edge highlights with wireframe crystals
-      for (let i = 0; i < 20; i++) {
-        const size = 1 + Math.random() * 3;
-        const geometry = createCrystalGeometry(Math.floor(Math.random() * 3), size);
 
-        const material = new THREE.MeshBasicMaterial({
-          color: 0xffffff,
-          wireframe: true,
-          transparent: true,
-          opacity: 0.08
-        });
-
-        const wire = new THREE.Mesh(geometry, material);
-        wire.position.x = (Math.random() - 0.5) * 70;
-        wire.position.y = (Math.random() - 0.5) * 50;
-        wire.position.z = (Math.random() - 0.5) * 120 - 20;
-        wire.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-
-        wire.userData = {
-          rotSpeedX: (Math.random() - 0.5) * 0.002,
-          rotSpeedY: (Math.random() - 0.5) * 0.003,
-          rotSpeedZ: (Math.random() - 0.5) * 0.001,
-          floatSpeed: 0.15 + Math.random() * 0.2,
-          floatAmplitude: 0.5 + Math.random() * 1,
-          floatOffset: Math.random() * Math.PI * 2,
-          baseY: wire.position.y,
-          driftX: (Math.random() - 0.5) * 0.003,
-          driftZ: (Math.random() - 0.5) * 0.005
-        };
-
-        scene.add(wire);
-        crystals.push(wire);
-      }
-
-      // Lighting - cool, ethereal
-      const ambient = new THREE.AmbientLight(0x4466aa, 0.4);
+      // Lighting - dramatic to catch facets
+      const ambient = new THREE.AmbientLight(0x334466, 0.5);
       scene.add(ambient);
 
-      const light1 = new THREE.DirectionalLight(0xffffff, 0.6);
-      light1.position.set(5, 10, 5);
-      scene.add(light1);
+      // Key light - strong white
+      const keyLight = new THREE.DirectionalLight(0xffffff, 0.9);
+      keyLight.position.set(8, 12, 8);
+      scene.add(keyLight);
 
-      const light2 = new THREE.DirectionalLight(0x8899ff, 0.3);
-      light2.position.set(-5, -5, 10);
-      scene.add(light2);
+      // Fill light - cool blue
+      const fillLight = new THREE.DirectionalLight(0x6688bb, 0.4);
+      fillLight.position.set(-6, 4, 4);
+      scene.add(fillLight);
 
-      // Subtle point light for sparkle
-      const point = new THREE.PointLight(0xaaccff, 0.5, 50);
-      point.position.set(0, 0, 20);
-      scene.add(point);
+      // Rim/back light - catches edges
+      const rimLight = new THREE.DirectionalLight(0x99aacc, 0.5);
+      rimLight.position.set(0, -8, -10);
+      scene.add(rimLight);
+
+      // Moving point light for sparkle effect
+      const sparkle = new THREE.PointLight(0xffffff, 0.6, 50);
+      sparkle.position.set(0, 0, 20);
+      scene.add(sparkle);
+      window.sparkleLight = sparkle;
 
       window.addEventListener('resize', onResize);
       animate();
@@ -438,6 +441,12 @@
         if (crystal.position.z > 50) crystal.position.z = -70;
         if (crystal.position.z < -70) crystal.position.z = 50;
       });
+
+      // Animate sparkle light for dynamic highlights
+      if (window.sparkleLight) {
+        window.sparkleLight.position.x = Math.sin(time * 0.2) * 12;
+        window.sparkleLight.position.y = Math.cos(time * 0.15) * 8;
+      }
 
       renderer.render(scene, camera);
     }
