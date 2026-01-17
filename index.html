@@ -1180,7 +1180,7 @@
 
     document.getElementById('lang-toggle').addEventListener('click', () => setLanguage(currentLang === 'fi' ? 'en' : 'fi'));
     const storedLang = localStorage.getItem('kide2-lang');
-    if (storedLang && storedLang !== currentLang) setLanguage(storedLang);
+    setLanguage(storedLang || 'fi');
 
     // Initialize
     init();
