@@ -555,6 +555,185 @@
       opacity: 0;
       pointer-events: none;
     }
+
+    /* ============ MOBILE STYLES ============ */
+    @media (max-width: 768px) {
+      /* Navigation - more compact */
+      .top-nav {
+        padding: 1rem 1rem;
+      }
+
+      .nav-btn {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.6rem;
+      }
+
+      .lang-toggle {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.6rem;
+      }
+
+      /* Hide nav dots on mobile - hard to tap */
+      #nav-dots {
+        display: none;
+      }
+
+      #scroll-hint {
+        font-size: 0.6rem;
+      }
+
+      /* Home slides - reduce padding, better centering */
+      .slide {
+        padding: 5vw;
+        align-items: center !important;
+        text-align: center !important;
+      }
+
+      .content-box {
+        padding: 2rem 1.5rem;
+        max-width: 90%;
+        border-radius: 16px;
+      }
+
+      h1 {
+        font-size: clamp(2rem, 10vw, 3rem);
+      }
+
+      h2 {
+        font-size: clamp(1.3rem, 5vw, 1.8rem);
+        margin-bottom: 1rem;
+      }
+
+      p {
+        font-size: 0.95rem;
+        line-height: 1.6;
+      }
+
+      .tagline {
+        font-size: clamp(0.85rem, 3vw, 1rem);
+      }
+
+      .label {
+        font-size: 0.6rem;
+        margin-bottom: 1rem;
+      }
+
+      .cta {
+        padding: 0.75rem 1.5rem;
+        font-size: 0.75rem;
+        margin-top: 1rem;
+      }
+
+      /* About section - compact layout */
+      .about-content {
+        padding: 5rem 1.5rem 2rem;
+        justify-content: flex-start;
+      }
+
+      .about-header {
+        margin-bottom: 1.5rem;
+      }
+
+      .about-header h2 {
+        font-size: 1.75rem;
+        font-weight: 400;
+        margin-bottom: 0.75rem;
+      }
+
+      .about-header p {
+        font-size: 1rem;
+        line-height: 1.6;
+      }
+
+      .about-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .founder-card {
+        padding: 1.25rem 1rem;
+      }
+
+      .founder-image {
+        width: 60px;
+        height: 60px;
+        margin-bottom: 0.75rem;
+      }
+
+      .founder-name {
+        font-size: 1rem;
+        margin-bottom: 0.25rem;
+      }
+
+      .founder-bio {
+        font-size: 0.85rem;
+        line-height: 1.5;
+      }
+
+      /* Cases section - compact grid */
+      .cases-content {
+        padding: 5rem 1.5rem 2rem;
+        justify-content: flex-start;
+      }
+
+      .cases-header {
+        margin-bottom: 1.5rem;
+      }
+
+      .cases-header h2 {
+        font-size: 1.75rem;
+        font-weight: 400;
+      }
+
+      .cases-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+        max-width: 280px;
+      }
+
+      .case-tile {
+        padding: 1.25rem;
+        border-radius: 12px;
+        aspect-ratio: auto;
+        min-height: 80px;
+      }
+
+      .case-name {
+        font-size: 1rem;
+      }
+
+      /* Modal - full screen on mobile */
+      .modal-overlay {
+        padding: 1rem;
+      }
+
+      .modal-content {
+        padding: 2rem 1.5rem;
+        max-height: 90vh;
+      }
+    }
+
+    /* Extra small screens */
+    @media (max-width: 380px) {
+      .nav-btn {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.55rem;
+      }
+
+      .lang-toggle {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.55rem;
+      }
+
+      .founder-image {
+        width: 70px;
+        height: 70px;
+      }
+
+      .cases-grid {
+        max-width: 240px;
+      }
+    }
   </style>
 </head>
 <body>
