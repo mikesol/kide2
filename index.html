@@ -632,25 +632,19 @@
 
       .about-header {
         margin-bottom: 1rem;
-        padding: 1.5rem;
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
-        backdrop-filter: blur(12px) saturate(120%);
-        -webkit-backdrop-filter: blur(12px) saturate(120%);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        border-radius: 16px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        text-align: center;
       }
 
       .about-header h2 {
         font-size: 1.5rem;
         font-weight: 400;
-        margin-bottom: 0.5rem;
+        margin-bottom: 1rem;
       }
 
-      .about-header p {
+      .intro-card p {
         font-size: 0.9rem;
         line-height: 1.5;
-        opacity: 0.85;
+        margin: 0;
       }
 
       .about-grid {
@@ -813,9 +807,11 @@
           <div class="about-inner">
             <div class="about-header">
               <h2 data-i18n="about.title">Meistä</h2>
-              <p data-i18n="about.intro">Operators and software people. We acquire small businesses and unlock value through digitalization that others overlook.</p>
             </div>
             <div class="about-grid">
+              <div class="content-box intro-card">
+                <p data-i18n="about.intro">Operators and software people. We acquire small businesses and unlock value through digitalization that others overlook.</p>
+              </div>
               <div class="content-box founder-card">
                 <img class="founder-image" src="varia.jpeg" alt="Vária Wahlroos-Kaitila">
                 <h3 class="founder-name">Vária Wahlroos-Kaitila</h3>
